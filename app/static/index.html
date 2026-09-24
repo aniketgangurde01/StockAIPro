@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StockAI - AI-Powered Stock Analysis Platform (NSE/BSE & Global)</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="/static/css/styles.css">
+  
+  <!-- Lightweight Charts (Local Cached Library) -->
+  <script src="/static/js/lightweight-charts.js"></script>
+</head>
+<body>
+
+  <!-- Top Benchmark Marquee / Bar -->
+  <div style="background: rgba(0,0,0,0.4); border-bottom: 1px solid var(--border-color); padding: 0 1.5rem;">
+    <div class="benchmark-bar" id="benchmark-marquee">
+      <div class="benchmark-chip">
+        <span style="font-weight: 700;">NIFTY 50:</span>
+        <span>Loading...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Application Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <a href="/" class="logo-wrapper">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+            <polyline points="16 7 22 7 22 13"></polyline>
+          </svg>
+        </div>
+        <div style="display: flex; align-items: baseline;">
+          <span class="logo-text">StockAI</span>
+          <span class="logo-badge">PRO</span>
+        </div>
+      </a>
+
+      <nav>
+        <ul class="nav-links">
+          <li><a class="nav-item active" href="#">Dashboard</a></li>
+          <li><a class="nav-item" href="#technical-section">Technicals</a></li>
+          <li><a class="nav-item" href="#fundamental-section">Fundamentals</a></li>
+          <li><a class="nav-item" href="#scenarios-section">Scenarios</a></li>
+          <li><a class="nav-item" href="#timeframes-section">Timeframes</a></li>
+        </ul>
+      </nav>
+
+      <div class="header-actions">
+        <!-- Demo Mode Toggle -->
+        <button id="btn-demo-toggle" class="btn-demo-toggle" title="Switch between live market data and offline demo data">
+          <span class="demo-dot"></span>
+          <span class="demo-label">Live Market Mode</span>
+        </button>
+
+        <!-- Watchlist Drawer Button -->
+        <button id="btn-watchlist-nav" class="btn-icon" title="View Saved Watchlist">
+          <span style="font-size: 1.1rem;">★</span>
+          <span id="watchlist-count-badge" style="font-size: 0.7rem; font-weight: 700; background: var(--ai-primary); color: white; border-radius: 999px; padding: 1px 5px; margin-left: -4px; margin-top: -12px;">0</span>
+        </button>
+
+        <!-- Theme Toggle -->
+        <button id="btn-theme-toggle" class="btn-icon" title="Toggle Theme">
+          🌙
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="main-wrapper">
+
+    <!-- Hero & Search Section -->
+    <section class="hero-section">
+      <h1 class="hero-title">AI-Powered <span>Stock Analysis</span></h1>
+      <p class="hero-subtitle">Understand market trends using data-driven analysis and probability-based scenarios.</p>
+
+      <div class="search-box-container">
+        <div class="search-input-wrapper">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input 
+            type="text" 
+            id="stock-search-input" 
+            class="search-input" 
+            placeholder="Search NSE/BSE stock e.g. RELIANCE, TCS, INFY, HDFCBANK..." 
+            autocomplete="off"
+            value="RELIANCE"
+          />
+          <button id="btn-analyze-stock" class="btn-analyze">
+            Analyze Stock
+          </button>
+        </div>
+
+        <!-- Autocomplete Dropdown List -->
+        <div id="autocomplete-dropdown" class="autocomplete-dropdown"></div>
+      </div>
+
+      <!-- Popular Indian Stocks Quick Chips -->
+      <div class="popular-stocks">
+        <span class="popular-label">Popular Indian Stocks:</span>
+        <button class="chip-btn" data-symbol="RELIANCE">RELIANCE</button>
+        <button class="chip-btn" data-symbol="TCS">TCS</button>
+        <button class="chip-btn" data-symbol="INFY">INFY</button>
+        <button class="chip-btn" data-symbol="HDFCBANK">HDFCBANK</button>
+        <button class="chip-btn" data-symbol="ICICIBANK">ICICIBANK</button>
+        <button class="chip-btn" data-symbol="TATAMOTORS">TATAMOTORS</button>
+      </div>
+    </section>
+
+    <!-- Loading Skeleton Indicator -->
+    <div id="dashboard-loading" class="dashboard-loading">
+      <div class="loading-dots">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+      <p style="font-weight: 600; color: var(--text-secondary);">Analyzing market data, indicators, and probabilities...</p>
+    </div>
+
+    <!-- Active Analysis Dashboard -->
+    <div id="analysis-dashboard">
+
+      <!-- Stock Identity Header Bar -->
+      <div class="stock-header-bar glass-card">
+        <div class="stock-identity">
+          <div class="stock-avatar" id="stock-avatar-text">REL</div>
+          <div class="stock-name-block">
+            <h2>
+              <span id="stock-name">Reliance Industries Ltd</span>
+              <span id="stock-ticker" class="stock-ticker-tag">RELIANCE.NS</span>
+            </h2>
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-top: 0.25rem;">
+              <span id="stock-source-pill" class="stock-source-pill source-live">● Live Exchange Data</span>
+              <span id="data-updated-time" style="font-size: 0.75rem; color: var(--text-muted);">Data updated: Just now</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stock-actions">
+          <button id="btn-add-watchlist" class="btn-watchlist-add">
+            ☆ Save to Watchlist
+          </button>
+        </div>
+      </div>
+
+      <!-- Top 5 Core Metrics Cards -->
+      <div class="top-metrics-grid">
+        <!-- Current Price Card -->
+        <div class="metric-card glass-card">
+          <div class="metric-label">
+            <span>Current Price</span>
+            <span class="tooltip-icon" data-tooltip="Last traded price on exchange">?</span>
+          </div>
+          <div class="metric-value text-mono" id="metric-price">₹0.00</div>
+          <div class="metric-sub" id="metric-change">+0.00 (+0.00%)</div>
+        </div>
+
+        <!-- Today's Change Card -->
+        <div class="metric-card glass-card">
+          <div class="metric-label">
+            <span>Today's Change</span>
+            <span class="tooltip-icon" data-tooltip="Net intraday change from previous close">?</span>
+          </div>
+          <div class="metric-value text-mono" id="metric-change-main">0.00%</div>
+          <div class="metric-sub" style="color: var(--text-muted);">vs Previous Session</div>
+        </div>
+
+        <!-- Market Trend Card -->
+        <div class="metric-card glass-card">
+          <div class="metric-label">
+            <span>Market Trend</span>
+            <span class="tooltip-icon" data-tooltip="Directional alignment of price relative to key moving averages">?</span>
+          </div>
+          <div class="metric-value" style="font-size: 1.35rem;" id="metric-trend">Bullish</div>
+          <div class="metric-sub" style="color: var(--text-muted); font-size: 0.75rem;" id="metric-trend-sub">Strong Trend</div>
+        </div>
+
+        <!-- AI Outlook Card -->
+        <div class="metric-card glass-card">
+          <div class="metric-label">
+            <span>AI Outlook</span>
+            <span class="tooltip-icon" data-tooltip="Multi-factor algorithmic classification synthesizing technicals, fundamentals, momentum & sentiment">?</span>
+          </div>
+          <div style="margin-top: 0.25rem;">
+            <span id="metric-outlook" class="outlook-badge outlook-bullish">BULLISH</span>
+          </div>
+          <div class="metric-sub" style="color: var(--text-muted); font-size: 0.75rem;">Analytical Classification</div>
+        </div>
+
+        <!-- Confidence Card -->
+        <div class="metric-card glass-card">
+          <div class="metric-label">
+            <span>Confidence</span>
+            <span class="tooltip-icon" data-tooltip="Degree of convergence among technical, fundamental and momentum indicators. NOT a guarantee.">?</span>
+          </div>
+          <div class="metric-value text-mono" id="metric-confidence">72%</div>
+          <div class="confidence-bar-container">
+            <div id="metric-confidence-bar" class="confidence-bar-fill" style="width: 72%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Layout: Chart & AI Market Outlook -->
+      <div class="dashboard-grid-2col">
+        
+        <!-- Interactive Chart Card -->
+        <div class="chart-card glass-card">
+          <div class="chart-header">
+            <div class="chart-title-block">
+              <h3>Technical Price Action Chart</h3>
+              <span style="font-size: 0.78rem; color: var(--text-muted);">Candlestick, Moving Averages (20, 50, 200), Support/Resistance & Volume</span>
+            </div>
+
+            <div class="chart-controls">
+              <!-- Overlay Toggles -->
+              <div class="chart-toggles">
+                <span class="toggle-chip active" data-overlay="ma20">MA20</span>
+                <span class="toggle-chip active" data-overlay="ma50">MA50</span>
+                <span class="toggle-chip active" data-overlay="ma200">MA200</span>
+                <span class="toggle-chip active" data-overlay="vol">Volume</span>
+              </div>
+
+              <!-- Timeframe Selector -->
+              <div class="timeframe-group">
+                <button class="tf-btn" data-tf="5D">5D</button>
+                <button class="tf-btn" data-tf="1M">1M</button>
+                <button class="tf-btn" data-tf="6M">6M</button>
+                <button class="tf-btn active" data-tf="1Y">1Y</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chart Render Canvas -->
+          <div id="tradingview-chart-container"></div>
+        </div>
+
+        <!-- AI Market Outlook & Why? Panel -->
+        <div class="ai-summary-card glass-card">
+          <div>
+            <div class="ai-card-title">
+              <span style="font-weight: 800; font-size: 1.05rem; letter-spacing: -0.3px;">AI MARKET OUTLOOK</span>
+              <span class="ai-pill">Multi-Factor Engine</span>
+            </div>
+
+            <div class="outlook-hero-box">
+              <span id="hero-ai-outlook" class="outlook-badge outlook-moderately-bullish" style="font-size: 1.15rem; padding: 0.45rem 1.25rem;">
+                MODERATELY BULLISH
+              </span>
+              
+              <div class="direction-row" id="hero-direction">
+                <span class="direction-arrow">▲</span>
+                <span>UPWARD</span>
+              </div>
+
+              <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">
+                Analytical Confidence: <strong id="hero-confidence-val" style="color: var(--text-primary);">72%</strong>
+              </div>
+              <div class="confidence-bar-container" style="max-width: 200px; margin: 0.4rem auto 0;">
+                <div id="hero-confidence-fill" class="confidence-bar-fill" style="width: 72%;"></div>
+              </div>
+              <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.35rem;">
+                Model classification confidence (not a price guarantee)
+              </div>
+            </div>
+
+            <!-- "Why?" Section -->
+            <div class="why-section">
+              <div class="why-title">
+                <span>Why this classification?</span>
+                <span class="tooltip-icon" data-tooltip="Core technical and fundamental drivers that shaped this outlook">?</span>
+              </div>
+              <ul class="why-list" id="why-factors-list">
+                <!-- Dynamically populated -->
+              </ul>
+            </div>
+          </div>
+
+          <!-- Overall Analysis Summary Narrative -->
+          <div>
+            <div class="narrative-summary-box" id="narrative-summary-text">
+              Loading analytical summary...
+            </div>
+
+            <!-- Transparent Multi-Factor Score Chips -->
+            <div class="scores-grid">
+              <div class="score-chip">
+                <div class="score-chip-label">Technical</div>
+                <div class="score-chip-val text-bullish" id="score-technical">--/100</div>
+              </div>
+              <div class="score-chip">
+                <div class="score-chip-label">Fundamental</div>
+                <div class="score-chip-val text-secondary" id="score-fundamental">--/100</div>
+              </div>
+              <div class="score-chip">
+                <div class="score-chip-label">Momentum</div>
+                <div class="score-chip-val text-bullish" id="score-momentum">--/100</div>
+              </div>
+              <div class="score-chip">
+                <div class="score-chip-label">Sentiment</div>
+                <div class="score-chip-val text-neutral" id="score-sentiment">--/100</div>
+              </div>
+              <div class="score-chip">
+                <div class="score-chip-label">Risk Level</div>
+                <div class="score-chip-val text-bearish" id="score-risk">--/100</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Price Level Analysis Section -->
+      <div class="levels-card glass-card">
+        <h3 style="font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; justify-content: space-between;">
+          <span>Price Level Analysis & Key Pivots</span>
+          <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 400;">Calculated from classical pivot points, swing highs/lows & volume clusters</span>
+        </h3>
+
+        <div class="levels-grid">
+          <div class="level-box">
+            <span class="level-title">Current Price</span>
+            <span class="level-val text-mono" id="lvl-current-price">₹0.00</span>
+            <span class="level-dist">Reference Baseline</span>
+          </div>
+
+          <div class="level-box support">
+            <span class="level-title text-bullish">Immediate Support</span>
+            <span class="level-val text-mono text-bullish" id="lvl-imm-support">₹0.00</span>
+            <span class="level-dist" id="lvl-imm-support-dist">-2.4% below price</span>
+          </div>
+
+          <div class="level-box support">
+            <span class="level-title text-bullish">Strong Support</span>
+            <span class="level-val text-mono text-bullish" id="lvl-strong-support">₹0.00</span>
+            <span class="level-dist">Major structural demand zone</span>
+          </div>
+
+          <div class="level-box resistance">
+            <span class="level-title text-bearish">Immediate Resistance</span>
+            <span class="level-val text-mono text-bearish" id="lvl-imm-res">₹0.00</span>
+            <span class="level-dist" id="lvl-imm-res-dist">+2.8% above price</span>
+          </div>
+
+          <div class="level-box resistance">
+            <span class="level-title text-bearish">Strong Resistance</span>
+            <span class="level-val text-mono text-bearish" id="lvl-strong-res">₹0.00</span>
+            <span class="level-dist">Overhead supply ceiling</span>
+          </div>
+
+          <div class="level-box">
+            <span class="level-title">52-Week Range</span>
+            <div style="font-size: 0.95rem; font-weight: 700; margin-top: 2px;">
+              H: <span id="lvl-52w-high">₹0</span> | L: <span id="lvl-52w-low">₹0</span>
+            </div>
+            <span class="level-dist">Annual High & Low Bounds</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Technical Indicators Dashboard -->
+      <section id="technical-section" style="margin-bottom: 2rem;">
+        <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem;">
+          Technical Analysis Indicators
+        </h3>
+
+        <div class="technical-grid">
+          <!-- RSI Card -->
+          <div class="tech-card glass-card">
+            <div class="tech-header">
+              <h4>
+                RSI (14)
+                <span class="tooltip-icon" data-tooltip="Relative Strength Index: Momentum oscillator measuring speed and change of price moves. >70 Overbought, <30 Oversold.">?</span>
+              </h4>
+              <span id="tech-rsi-status" class="tech-status-badge badge-bull">Bullish Momentum</span>
+            </div>
+            <div style="font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem;" class="text-mono" id="tech-rsi-val">
+              58.4
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-secondary);" id="tech-rsi-desc">
+              Healthy momentum without overextended conditions.
+            </p>
+          </div>
+
+          <!-- MACD Card -->
+          <div class="tech-card glass-card">
+            <div class="tech-header">
+              <h4>
+                MACD (12, 26, 9)
+                <span class="tooltip-icon" data-tooltip="Moving Average Convergence Divergence: Trend-following momentum indicator showing the relationship between two moving averages.">?</span>
+              </h4>
+              <span id="tech-macd-status" class="tech-status-badge badge-bull">Bullish</span>
+            </div>
+            <div class="tech-data-row">
+              <span class="text-secondary">MACD Line:</span>
+              <span class="text-mono" id="tech-macd-val">0.00</span>
+            </div>
+            <div class="tech-data-row">
+              <span class="text-secondary">Signal Line:</span>
+              <span class="text-mono" id="tech-macd-signal">0.00</span>
+            </div>
+            <div class="tech-data-row">
+              <span class="text-secondary">Histogram:</span>
+              <span class="text-mono" id="tech-macd-hist">0.00</span>
+            </div>
+          </div>
+
+          <!-- Moving Averages Card -->
+          <div class="tech-card glass-card">
+            <div class="tech-header">
+              <h4>
+                Moving Averages & EMA
+                <span class="tooltip-icon" data-tooltip="Trend benchmarks: 20-day (short), 50-day (medium), 200-day (long-term structural trend).">?</span>
+              </h4>
+              <span id="tech-cross-signal" class="tech-status-badge badge-bull">Bullish Alignment</span>
+            </div>
+            <div class="tech-data-row">
+              <span class="text-secondary">SMA 20 (Short):</span>
+              <span class="text-mono" id="tech-sma-20">₹0.00</span>
+            </div>
+            <div class="tech-data-row">
+              <span class="text-secondary">SMA 50 (Medium):</span>
+              <span class="text-mono" id="tech-sma-50">₹0.00</span>
+            </div>
+            <div class="tech-data-row">
+              <span class="text-secondary">SMA 200 (Long):</span>
+              <span class="text-mono" id="tech-sma-200">₹0.00</span>
+            </div>
+            <div class="tech-data-row">
+              <span class="text-secondary">EMA 9 (Fast):</span>
+              <span class="text-mono" id="tech-ema-9">₹0.00</span>
+            </div>
+          </div>
+
+          <!-- Bollinger Bands Card -->
+          <div class="tech-card glass-card">
+            <div class="tech-header">
+              <h4>
+                Bollinger Bands (20, 2)
+                <span class="tooltip-icon" data-tooltip="Volatility bands placed above and below a 20-period moving average. Measures expansion and compression.">?</span>
+              </h4>
+              <span id="tech-bb-status" class="tech-status-badge badge-neut">Within Bands</span>
+            </div>
+            <div class="tech-data-row">
+              <span class="text-secondary">Upper Band:</span>
+              <span class="text-mono" id="tech-bb-upper">₹0.00</span>
+            </div>
+            <div class="tech-data-row">
+              <span class="text-secondary">Middle (SMA20):</span>
+              <span class="text-mono" id="tech-bb-mid">₹0.00</span>
+            </div>
+            <div class="tech-data-row">
+              <span class="text-secondary">Lower Band:</span>
+              <span class="text-mono" id="tech-bb-lower">₹0.00</span>
+            </div>
+            <div class="tech-data-row">
+              <span class="text-secondary">Bandwidth:</span>
+              <span class="text-mono" id="tech-bb-bandwidth">0.0%</span>
+            </div>
+          </div>
+
+          <!-- Volume Analysis Card -->
+          <div class="tech-card glass-card">
+            <div class="tech-header">
+              <h4>
+                Volume & Participation
+                <span class="tooltip-icon" data-tooltip="Trading volume relative to its 20-day moving average. Volume confirms price breakouts.">?</span>
+              </h4>
+              <span id="tech-vol-status" class="tech-status-badge badge-bull">Above Average</span>
+            </div>
+            <div class="tech-data-row">
+              <span class="text-secondary">Current Volume:</span>
+              <span class="text-mono" id="tech-vol-current">0</span>
+            </div>
+            <div class="tech-data-row">
+              <span class="text-secondary">20-Day Avg Volume:</span>
+              <span class="text-mono" id="tech-vol-avg">0</span>
+            </div>
+            <div class="tech-data-row">
+              <span class="text-secondary">Volume Ratio:</span>
+              <span class="text-mono" id="tech-vol-ratio">1.0x</span>
+            </div>
+          </div>
+
+          <!-- Trend & Breakout Signals Card -->
+          <div class="tech-card glass-card">
+            <div class="tech-header">
+              <h4>
+                Breakout & Range Signals
+                <span class="tooltip-icon" data-tooltip="Identifies whether price is breaking out of 20-day high/low boundaries with volume confirmation.">?</span>
+              </h4>
+            </div>
+            <div style="font-size: 1.1rem; font-weight: 700; margin: 0.5rem 0;" id="tech-breakout-signal">
+              Consolidation
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-secondary);">
+              Monitors range extremes and volume expansion triggers.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Fundamental Analysis Section -->
+      <section id="fundamental-section" style="margin-bottom: 2rem;">
+        <div class="levels-card glass-card">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+            <h3 style="font-size: 1.2rem; font-weight: 700;">Fundamental Analysis</h3>
+            <span style="font-size: 0.85rem; font-weight: 600; color: var(--ai-cyan);">Overall Health: <span id="fund-health">Robust & Healthy</span></span>
+          </div>
+
+          <div class="fundamental-grid">
+            <div class="fund-box">
+              <div class="fund-label">
+                <span>Market Cap</span>
+                <span class="tooltip-icon" data-tooltip="Total value of company's outstanding shares in Indian Crores / Lakh Crores">?</span>
+              </div>
+              <div class="fund-val text-mono" id="fund-mcap">--</div>
+              <div class="fund-sub">Total Valuation</div>
+            </div>
+
+            <div class="fund-box">
+              <div class="fund-label">
+                <span>P/E Ratio</span>
+                <span class="tooltip-icon" data-tooltip="Price to Earnings ratio: Market price per share divided by annual earnings per share.">?</span>
+              </div>
+              <div class="fund-val text-mono" id="fund-pe">--</div>
+              <div class="fund-sub" id="fund-pe-status">Fairly Valued</div>
+            </div>
+
+            <div class="fund-box">
+              <div class="fund-label">
+                <span>P/B Ratio</span>
+                <span class="tooltip-icon" data-tooltip="Price to Book: Compares market value to book value (net assets).">?</span>
+              </div>
+              <div class="fund-val text-mono" id="fund-pb">--</div>
+              <div class="fund-sub">Asset Multiple</div>
+            </div>
+
+            <div class="fund-box">
+              <div class="fund-label">
+                <span>EPS (TTM)</span>
+                <span class="tooltip-icon" data-tooltip="Earnings Per Share over trailing 12 months.">?</span>
+              </div>
+              <div class="fund-val text-mono" id="fund-eps">--</div>
+              <div class="fund-sub">Net Profit / Share</div>
+            </div>
+
+            <div class="fund-box">
+              <div class="fund-label">
+                <span>ROE (Return on Equity)</span>
+                <span class="tooltip-icon" data-tooltip="Measures financial efficiency in generating profits from shareholders' equity.">?</span>
+              </div>
+              <div class="fund-val text-mono" id="fund-roe">--</div>
+              <div class="fund-sub" id="fund-roe-status">Capital Efficiency</div>
+            </div>
+
+            <div class="fund-box">
+              <div class="fund-label">
+                <span>Debt to Equity</span>
+                <span class="tooltip-icon" data-tooltip="Total liabilities relative to shareholder equity. < 0.5 is conservative.">?</span>
+              </div>
+              <div class="fund-val text-mono" id="fund-de">--</div>
+              <div class="fund-sub" id="fund-de-status">Leverage Health</div>
+            </div>
+
+            <div class="fund-box">
+              <div class="fund-label">
+                <span>Revenue Growth (YoY)</span>
+                <span class="tooltip-icon" data-tooltip="Year-over-Year top-line sales growth percentage.">?</span>
+              </div>
+              <div class="fund-val text-mono" id="fund-rev-growth">--</div>
+              <div class="fund-sub">Top-Line Expansion</div>
+            </div>
+
+            <div class="fund-box">
+              <div class="fund-label">
+                <span>Profit Growth (YoY)</span>
+                <span class="tooltip-icon" data-tooltip="Year-over-Year net income growth percentage.">?</span>
+              </div>
+              <div class="fund-val text-mono" id="fund-profit-growth">--</div>
+              <div class="fund-sub">Bottom-Line Performance</div>
+            </div>
+
+            <div class="fund-box">
+              <div class="fund-label">
+                <span>Dividend Yield</span>
+                <span class="tooltip-icon" data-tooltip="Annual dividend payouts divided by stock price.">?</span>
+              </div>
+              <div class="fund-val text-mono" id="fund-div-yield">--</div>
+              <div class="fund-sub">Cash Return</div>
+            </div>
+
+            <div class="fund-box">
+              <div class="fund-label">
+                <span>Promoter Holding</span>
+                <span class="tooltip-icon" data-tooltip="Percentage of shares held by company founders / controlling group.">?</span>
+              </div>
+              <div class="fund-val text-mono" id="fund-promoter-holding">--</div>
+              <div class="fund-sub">Insider Commitment</div>
+            </div>
+
+            <div class="fund-box">
+              <div class="fund-label">
+                <span>Institutional Stake</span>
+                <span class="tooltip-icon" data-tooltip="Shares held by FIIs (Foreign) and DIIs (Mutual funds, Insurance).">?</span>
+              </div>
+              <div class="fund-val text-mono" id="fund-inst-holding">--</div>
+              <div class="fund-sub">FII & DII Backing</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Possible Scenarios Section -->
+      <section id="scenarios-section" style="margin-bottom: 2rem;">
+        <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.25rem;">
+          Possible Price Scenarios
+        </h3>
+        <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Hypothetical analytical pathways based on support/resistance pivots. These are analytical scenarios, not guaranteed predictions.
+        </p>
+
+        <div class="scenarios-grid">
+          <!-- Bullish Scenario -->
+          <div class="scenario-card scenario-bullish glass-card">
+            <div>
+              <div class="scenario-head">
+                <h4 class="text-bullish">Bullish Scenario</h4>
+                <span class="tech-status-badge badge-bull">Upward Expansion</span>
+              </div>
+              <div class="scenario-point">
+                <span class="scenario-label">Catalyst Trigger:</span>
+                <span id="scenario-bull-trigger">Decisive breakout above immediate resistance</span>
+              </div>
+              <div class="scenario-point">
+                <span class="scenario-label">Target Level:</span>
+                <span id="scenario-bull-targets">Strong Resistance / 52w High</span>
+              </div>
+              <div class="scenario-point">
+                <span class="scenario-label">Supporting Conditions:</span>
+                <span id="scenario-bull-cond">Volume surge and broader index stability</span>
+              </div>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.5rem;">
+              <strong>Invalidation:</strong> <span id="scenario-bull-inval">Drop below immediate support</span>
+            </div>
+          </div>
+
+          <!-- Neutral Scenario -->
+          <div class="scenario-card scenario-neutral glass-card">
+            <div>
+              <div class="scenario-head">
+                <h4 class="text-neutral">Neutral / Sideways Scenario</h4>
+                <span class="tech-status-badge badge-neut">Rangebound</span>
+              </div>
+              <div class="scenario-point">
+                <span class="scenario-label">Range Bounds:</span>
+                <span id="scenario-neut-trigger">Consolidation between support and resistance</span>
+              </div>
+              <div class="scenario-point">
+                <span class="scenario-label">Equilibrium Pivot:</span>
+                <span id="scenario-neut-targets">Center of Bollinger Band</span>
+              </div>
+              <div class="scenario-point">
+                <span class="scenario-label">Conditions:</span>
+                <span id="scenario-neut-cond">Low trading volumes, lack of fresh sectoral news</span>
+              </div>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.5rem;">
+              <strong>Outcome:</strong> Accumulation or time-correction before next leg
+            </div>
+          </div>
+
+          <!-- Bearish Scenario -->
+          <div class="scenario-card scenario-bearish glass-card">
+            <div>
+              <div class="scenario-head">
+                <h4 class="text-bearish">Bearish Scenario</h4>
+                <span class="tech-status-badge badge-bear">Downward Retracement</span>
+              </div>
+              <div class="scenario-point">
+                <span class="scenario-label">Breakdown Trigger:</span>
+                <span id="scenario-bear-trigger">Failure to hold immediate support</span>
+              </div>
+              <div class="scenario-point">
+                <span class="scenario-label">Target Level:</span>
+                <span id="scenario-bear-targets">Strong structural support floor</span>
+              </div>
+              <div class="scenario-point">
+                <span class="scenario-label">Conditions:</span>
+                <span id="scenario-bear-cond">Institutional selling pressure, negative macro cues</span>
+              </div>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.5rem;">
+              <strong>Invalidation:</strong> <span id="scenario-bear-inval">Aggressive dip buying reclaiming support</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Multi-Timeframe Analysis Matrix -->
+      <section id="timeframes-section" style="margin-bottom: 2rem;">
+        <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.25rem;">
+          Multi-Timeframe Analytical Matrix
+        </h3>
+        <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Evaluating short-term noise vs structural long-term trend across 4 key horizons.
+        </p>
+
+        <div class="timeframes-grid" id="timeframes-container">
+          <!-- Dynamically populated -->
+        </div>
+      </section>
+
+      <!-- Risk Factors & Sentiment Section -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        
+        <!-- Risk Radar Card -->
+        <div class="risk-card glass-card">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <h3 style="font-size: 1.1rem; font-weight: 700;">Risk Factors & Alerts</h3>
+            <span id="risk-overall-level" style="font-size: 0.8rem; font-weight: 700; color: var(--neutral);">Moderate Risk</span>
+          </div>
+
+          <div class="risk-list" id="risk-factors-container">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- News & Sentiment Card -->
+        <div class="risk-card glass-card">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+            <h3 style="font-size: 1.1rem; font-weight: 700;">News Sentiment & Flow</h3>
+            <span id="sentiment-label" class="tech-status-badge badge-bull">Positive (65/100)</span>
+          </div>
+          <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;" id="sentiment-inst-activity">
+            Institutional flow: Normal
+          </div>
+          <div style="font-size: 0.84rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 1rem;" id="sentiment-summary">
+            News flow is constructive.
+          </div>
+
+          <div class="news-grid" id="news-container">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Legal Financial Disclaimer Box -->
+      <div class="disclaimer-card">
+        <svg class="disclaimer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        <div class="disclaimer-text">
+          <h4>Analytical & Educational Disclaimer</h4>
+          <p>
+            This analysis is for educational and informational purposes only. It is not financial advice, investment solicitation, or recommendation, and does NOT guarantee future stock price movements. Market conditions can change rapidly. Always conduct your own independent research and consult a licensed financial advisor before making investment decisions.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Watchlist Drawer (Right Slide-over) -->
+  <aside id="watchlist-drawer" class="watchlist-drawer">
+    <div class="watchlist-header">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span style="font-size: 1.2rem; color: var(--neutral);">★</span>
+        <h3 style="font-size: 1.1rem; font-weight: 700;">My Watchlist</h3>
+      </div>
+      <button id="btn-close-watchlist" class="btn-icon" style="width: 32px; height: 32px;">✕</button>
+    </div>
+    <div class="watchlist-items" id="watchlist-items-container">
+      <!-- Dynamically populated -->
+    </div>
+  </aside>
+  <div id="drawer-backdrop" class="drawer-backdrop"></div>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <div style="max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <strong>StockAI Platform</strong> • Data-Driven Stock Analysis for NSE, BSE & Global Markets
+      </div>
+      <div>
+        All rights reserved. Aniket Gangurde.
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="/static/js/watchlist.js"></script>
+  <script src="/static/js/chart.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
